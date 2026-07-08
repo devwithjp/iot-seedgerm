@@ -1,0 +1,6 @@
+{"time":"2026-07-07T15:34:25","camera":"germcam-1","url":"http://germcam-1.local/jpg","ok":false,"error":"<urlopen error [Errno -2] Name or service not known>"}
+{"time":"2026-07-07T15:34:25","camera":"germcam-2","url":"http://germcam-2.local/jpg","ok":false,"error":"<urlopen error [Errno -2] Name or service not known>"}
+{"time":"2026-07-07T17:01:39","camera":"germcam-1","url":"http://172.20.10.5/jpg","ok":false,"error":"timed out"}
+{"time":"2026-07-07T17:08:32","camera":"germcam-1","url":"http://172.20.10.5/jpg","ok":true,"path":"images/2026-07-07/germcam-1/germcam-1_20260707_170832.jpg","bytes":232918}
+{"time":"2026-07-07T17:24:27","camera":"germcam-1","url":"http://172.20.10.5/jpg","ok":true,"path":"images/2026-07-07/germcam-1/germcam-1_20260707_172427.jpg","bytes":17163}
+{"time":"2026-07-07T17:28:18","camera":"germcam-1","url":"http://172.20.10.5/jpg","ok":true,"path":"images/2026-07-07/germcam-1/germcam-1_20260707_172818.jpg","bytes":16982}

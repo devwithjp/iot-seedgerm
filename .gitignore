@@ -1,0 +1,21 @@
+# Large binaries / downloads
+downloads/
+*.img.xz
+*.img
+
+# Media
+*.mp4
+
+# PDFs
+*.pdf
+
+# Logs
+logs/*.log
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+*.swp

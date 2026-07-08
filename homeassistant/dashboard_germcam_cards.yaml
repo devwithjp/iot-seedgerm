@@ -1,0 +1,40 @@
+# Paste these cards into a manual Lovelace dashboard view after creating
+# Generic Camera entities named camera.germcam_1 and camera.germcam_2.
+
+- type: picture-entity
+  entity: camera.germcam_1
+  name: Germcam 1
+  camera_view: live
+  show_state: false
+
+- type: picture-entity
+  entity: camera.germcam_2
+  name: Germcam 2
+  camera_view: live
+  show_state: false
+
+- type: entities
+  title: Germination Camera Health
+  entities:
+    - entity: binary_sensor.germcam_1_online
+    - entity: sensor.germcam_1_rssi
+    - entity: sensor.germcam_1_uptime
+    - entity: sensor.germcam_1_free_heap
+    - entity: sensor.germcam_1_jpeg_url
+    - entity: sensor.germcam_1_stream_url
+    - type: divider
+    - entity: binary_sensor.germcam_2_online
+    - entity: sensor.germcam_2_rssi
+    - entity: sensor.germcam_2_uptime
+    - entity: sensor.germcam_2_free_heap
+    - entity: sensor.germcam_2_jpeg_url
+    - entity: sensor.germcam_2_stream_url
+
+- type: entities
+  title: Germination Soil Moisture
+  entities:
+    - entity: binary_sensor.germsoil_1_online
+    - entity: sensor.germsoil_1_moisture
+    - entity: sensor.germsoil_1_raw_moisture
+    - entity: sensor.germsoil_1_rssi
+    - entity: sensor.germsoil_1_uptime

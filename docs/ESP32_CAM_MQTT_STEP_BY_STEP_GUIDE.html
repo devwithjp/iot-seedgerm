@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESP32-CAM MQTT Setup Guide - Germination Chamber</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --soft: #f5f7fa;
+      --panel: #ffffff;
+      --accent: #2f855a;
+      --accent2: #2b6cb0;
+      --warn: #b7791f;
+      --bad: #c53030;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: #eef2f7;
+      line-height: 1.5;
+    }
+
+    header {
+      background: #123524;
+      color: white;
+      padding: 32px 20px;
+    }
+
+    header .wrap, main {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      margin: 20px 0 8px;
+      font-size: 17px;
+    }
+
+    p { margin: 8px 0 12px; }
+
+    main {
+      padding: 24px 20px 60px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+    }
+
+    .lead {
+      color: #d8f3dc;
+      max-width: 850px;
+      font-size: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin: 14px 0;
+    }
+
+    .box {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .box strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .ok { border-left: 5px solid var(--accent); }
+    .note { border-left: 5px solid var(--accent2); }
+    .warn { border-left: 5px solid var(--warn); }
+    .bad { border-left: 5px solid var(--bad); }
+
+    code, pre {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 14px;
+    }
+
+    code {
+      background: #edf2f7;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+
+    pre {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: #edf2f7; }
+
+    ol, ul { padding-left: 24px; }
+
+    li { margin: 7px 0; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .num {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .screenshot {
+      margin: 12px 0;
+      border: 1px solid #bcccdc;
+      border-radius: 8px;
+      background: white;
+      overflow: hidden;
+    }
+
+    .caption {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 6px 0 0;
+    }
+
+    .screenbar {
+      height: 30px;
+      background: #e4e7eb;
+      border-bottom: 1px solid #bcccdc;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+
+    .fake-ui {
+      padding: 14px;
+      min-height: 150px;
+      background: #f8fafc;
+    }
+
+    .menu {
+      display: inline-block;
+      background: white;
+      border: 1px solid #bcccdc;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin: 4px;
+      min-width: 210px;
+    }
+
+    .highlight {
+      outline: 3px solid #f6ad55;
+      background: #fffaf0;
+    }
+
+    svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .small { font-size: 13px; color: var(--muted); }
+
+    @media print {
+      body { background: white; }
+      section { break-inside: avoid; box-shadow: none; }
+      header { background: white; color: black; border-bottom: 2px solid #111; }
+      .lead { color: #333; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>ESP32-CAM MQTT Setup Guide</h1>
+      <p class="lead">For the Mini Germination Chamber: two ESP32-CAM boards publish camera status to Mosquitto over MQTT, while the Raspberry Pi pulls images from each board over HTTP.</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="note">
+      <h2>What You Are Building First</h2>
+      <p>The pitch PDF uses a Raspberry Pi as the hub for Mosquitto, Home Assistant, logging, and image processing. The clean first milestone is to make both ESP32-CAM boards visible on Wi-Fi and MQTT.</p>
+      <div class="grid">
+        <div class="box">
+          <strong>ESP32-CAM 1</strong>
+          Node name: <code>germcam-1</code><br>
+          Publishes: status, availability, image URLs
+        </div>
+        <div class="box">
+          <strong>ESP32-CAM 2</strong>
+          Node name: <code>germcam-2</code><br>
+          Same firmware, different node name
+        </div>
+        <div class="box">
+          <strong>Raspberry Pi</strong>
+          Runs Mosquitto. Later it captures images from <code>/jpg</code>, stores them, and runs germination detection.
+        </div>
+      </div>
+      <p class="small">Why not send photos through MQTT? JPEG payloads can be large. For the first version, MQTT carries status and URLs; HTTP carries image frames.</p>
+    </section>
+
+    <section>
+      <h2>Files Already Created</h2>
+      <table>
+        <tr><th>File</th><th>Purpose</th></tr>
+        <tr>
+          <td><code>esp32/esp32_cam_node/esp32_cam_node.ino</code></td>
+          <td>Arduino sketch for ESP32-CAM with Wi-Fi, MQTT, <code>/jpg</code>, <code>/stream</code>, and <code>/status</code>.</td>
+        </tr>
+        <tr>
+          <td><code>docs/ESP32_CAM_SETUP.md</code></td>
+          <td>Shorter setup notes.</td>
+        </tr>
+        <tr>
+          <td><code>docs/ESP32_CAM_MQTT_STEP_BY_STEP_GUIDE.html</code></td>
+          <td>This detailed guide with diagrams.</td>
+        </tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>Hardware Checklist</h2>
+      <ul>
+        <li>1 ESP32-CAM module, usually labelled AI Thinker ESP32-CAM.</li>
+        <li>1 USB-to-serial adapter, also called FTDI adapter.</li>
+        <li>Jumper wires.</li>
+        <li>Stable 5V power. Do not use 3.3V to power the ESP32-CAM camera board.</li>
+        <li>Computer with Arduino IDE.</li>
+        <li>Raspberry Pi running Mosquitto, or ready to run Mosquitto soon.</li>
+      </ul>
+      <div class="box warn">
+        <strong>Important power note</strong>
+        ESP32-CAM boards often fail or reboot if powered weakly. Use the adapter's <code>5V</code> pin to the ESP32-CAM <code>5V</code> pin, with common <code>GND</code>.
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 1 - Wire The ESP32-CAM For Flashing</h2>
+      <p>Use this wiring only while uploading firmware. The <code>GPIO0</code> to <code>GND</code> jumper puts the board into flash mode.</p>
+
+      <table>
+        <tr><th>USB-to-serial adapter</th><th>ESP32-CAM</th><th>Reason</th></tr>
+        <tr><td><code>5V</code></td><td><code>5V</code></td><td>Power</td></tr>
+        <tr><td><code>GND</code></td><td><code>GND</code></td><td>Ground</td></tr>
+        <tr><td><code>TX</code></td><td><code>U0R</code></td><td>Adapter transmit to ESP receive</td></tr>
+        <tr><td><code>RX</code></td><td><code>U0T</code></td><td>Adapter receive from ESP transmit</td></tr>
+        <tr><td><code>GND</code></td><td><code>GPIO0</code></td><td>Flash mode only</td></tr>
+      </table>
+
+      <div class="screenshot">
+        <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><strong>Wiring diagram</strong></div>
+        <svg viewBox="0 0 980 450" role="img" aria-label="ESP32-CAM flashing wiring diagram">
+          <rect x="55" y="70" width="285" height="290" rx="12" fill="#edf2f7" stroke="#52606d" stroke-width="2"/>
+          <text x="197" y="105" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700">USB-to-Serial</text>
+          <rect x="93" y="140" width="205" height="36" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="116" y="164" font-family="Arial" font-size="17">5V</text>
+          <rect x="93" y="190" width="205" height="36" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="116" y="214" font-family="Arial" font-size="17">GND</text>
+          <rect x="93" y="240" width="205" height="36" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="116" y="264" font-family="Arial" font-size="17">TX</text>
+          <rect x="93" y="290" width="205" height="36" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="116" y="314" font-family="Arial" font-size="17">RX</text>
+
+          <rect x="640" y="55" width="285" height="330" rx="12" fill="#e6fffa" stroke="#2f855a" stroke-width="2"/>
+          <text x="782" y="90" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700">ESP32-CAM</text>
+          <circle cx="782" cy="145" r="36" fill="#1f2933"/>
+          <circle cx="782" cy="145" r="18" fill="#4a5568"/>
+          <text x="782" y="207" text-anchor="middle" font-family="Arial" font-size="14">Camera</text>
+
+          <rect x="680" y="235" width="205" height="30" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="704" y="256" font-family="Arial" font-size="16">5V</text>
+          <rect x="680" y="275" width="205" height="30" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="704" y="296" font-family="Arial" font-size="16">GND</text>
+          <rect x="680" y="315" width="205" height="30" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="704" y="336" font-family="Arial" font-size="16">U0R</text>
+          <rect x="680" y="355" width="205" height="30" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="704" y="376" font-family="Arial" font-size="16">U0T</text>
+          <rect x="680" y="395" width="205" height="30" rx="5" fill="#fff" stroke="#94a3b8"/>
+          <text x="704" y="416" font-family="Arial" font-size="16">GPIO0</text>
+
+          <line x1="298" y1="158" x2="680" y2="250" stroke="#d97706" stroke-width="5"/>
+          <text x="470" y="185" font-family="Arial" font-size="15" fill="#92400e">5V to 5V</text>
+          <line x1="298" y1="208" x2="680" y2="290" stroke="#111827" stroke-width="5"/>
+          <text x="455" y="235" font-family="Arial" font-size="15">GND to GND</text>
+          <line x1="298" y1="258" x2="680" y2="330" stroke="#2563eb" stroke-width="5"/>
+          <text x="463" y="286" font-family="Arial" font-size="15" fill="#1d4ed8">TX to U0R</text>
+          <line x1="298" y1="308" x2="680" y2="370" stroke="#16a34a" stroke-width="5"/>
+          <text x="463" y="336" font-family="Arial" font-size="15" fill="#166534">RX to U0T</text>
+          <path d="M680 290 C610 320 610 410 680 410" fill="none" stroke="#dc2626" stroke-width="5"/>
+          <text x="480" y="405" font-family="Arial" font-size="15" fill="#b91c1c">GPIO0 to GND while flashing</text>
+        </svg>
+      </div>
+
+      <p class="caption">After wiring, press the ESP32-CAM <code>RST</code> button once before uploading.</p>
+    </section>
+
+    <section>
+      <h2>Step 2 - Install Arduino IDE Support</h2>
+      <div class="step">
+        <div class="num">1</div>
+        <div>
+          <h3>Install ESP32 boards</h3>
+          <p>In Arduino IDE, open <code>File > Preferences</code>. In <code>Additional Boards Manager URLs</code>, add:</p>
+          <pre>https://espressif.github.io/arduino-esp32/package_esp32_index.json</pre>
+        </div>
+      </div>
+
+      <div class="screenshot">
+        <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><strong>Arduino IDE Preferences screenshot</strong></div>
+        <div class="fake-ui">
+          <div class="menu">File</div>
+          <div class="menu">Edit</div>
+          <div class="menu highlight">Preferences</div>
+          <p><strong>Additional Boards Manager URLs</strong></p>
+          <div class="box"><code>https://espressif.github.io/arduino-esp32/package_esp32_index.json</code></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div>
+          <h3>Install the ESP32 board package</h3>
+          <p>Open <code>Tools > Board > Boards Manager</code>. Search for <code>esp32</code>. Install <code>esp32 by Espressif Systems</code>.</p>
+        </div>
+      </div>
+
+      <div class="screenshot">
+        <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><strong>Boards Manager screenshot</strong></div>
+        <div class="fake-ui">
+          <p><strong>Boards Manager</strong></p>
+          <div class="box highlight">
+            Search: <code>esp32</code><br>
+            Result: <strong>esp32 by Espressif Systems</strong><br>
+            Action: <strong>Install</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div>
+          <h3>Install MQTT library</h3>
+          <p>Open <code>Sketch > Include Library > Manage Libraries</code>. Search for <code>PubSubClient</code>. Install <code>PubSubClient by Nick O'Leary</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 3 - Open And Edit The Sketch</h2>
+      <p>Open this file in Arduino IDE:</p>
+      <pre>/home/jp/Desktop/IOT/project/esp32/esp32_cam_node/esp32_cam_node.ino</pre>
+
+      <p>Change these lines near the top of the sketch:</p>
+      <pre>const char *WIFI_SSID = "REDACTED";
+const char *WIFI_PASSWORD = "REDACTED";
+const char *NODE_NAME = "germcam-1";
+const char *MQTT_HOST = "192.168.1.10";</pre>
+
+      <table>
+        <tr><th>Setting</th><th>What to put</th></tr>
+        <tr><td><code>WIFI_SSID</code></td><td>Your Wi-Fi network name.</td></tr>
+        <tr><td><code>WIFI_PASSWORD</code></td><td>Your Wi-Fi password.</td></tr>
+        <tr><td><code>NODE_NAME</code></td><td><code>germcam-1</code> for the first board, <code>germcam-2</code> for the second board.</td></tr>
+        <tr><td><code>MQTT_HOST</code></td><td>The Raspberry Pi IP address running Mosquitto.</td></tr>
+      </table>
+
+      <div class="box note">
+        <strong>Finding the Raspberry Pi IP</strong>
+        On the Pi, run <code>hostname -I</code>. Use the first IP address shown, for example <code>192.168.1.10</code>.
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 4 - Arduino IDE Board Settings</h2>
+      <p>Use these settings before upload:</p>
+      <table>
+        <tr><th>Menu</th><th>Setting</th></tr>
+        <tr><td><code>Tools > Board</code></td><td><code>AI Thinker ESP32-CAM</code></td></tr>
+        <tr><td><code>Tools > Port</code></td><td>Usually <code>/dev/ttyUSB0</code></td></tr>
+        <tr><td><code>Upload Speed</code></td><td><code>115200</code></td></tr>
+        <tr><td><code>CPU Frequency</code></td><td><code>240MHz</code></td></tr>
+        <tr><td><code>Flash Frequency</code></td><td><code>40MHz</code></td></tr>
+        <tr><td><code>Partition Scheme</code></td><td><code>Huge APP</code></td></tr>
+        <tr><td><code>PSRAM</code></td><td><code>Enabled</code></td></tr>
+      </table>
+
+      <div class="screenshot">
+        <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><strong>Tools menu screenshot</strong></div>
+        <div class="fake-ui">
+          <div class="menu highlight">Board: AI Thinker ESP32-CAM</div>
+          <div class="menu highlight">Port: /dev/ttyUSB0</div>
+          <div class="menu">Upload Speed: 115200</div>
+          <div class="menu">Partition Scheme: Huge APP</div>
+          <div class="menu">PSRAM: Enabled</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 5 - Upload Firmware</h2>
+      <ol>
+        <li>Make sure <code>GPIO0</code> is connected to <code>GND</code>.</li>
+        <li>Press <code>RST</code> on the ESP32-CAM.</li>
+        <li>Click the Arduino IDE upload button.</li>
+        <li>Wait for <code>Hard resetting via RTS pin...</code> or upload complete.</li>
+        <li>Disconnect the <code>GPIO0</code> to <code>GND</code> wire.</li>
+        <li>Press <code>RST</code> again so the board boots normally.</li>
+      </ol>
+
+      <div class="box bad">
+        <strong>If upload fails with "Failed to connect"</strong>
+        Check <code>GPIO0</code> is connected to <code>GND</code>, press <code>RST</code>, then upload again. Also check TX/RX are crossed: adapter <code>TX</code> goes to ESP32-CAM <code>U0R</code>, adapter <code>RX</code> goes to ESP32-CAM <code>U0T</code>.
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 6 - Read The Serial Monitor</h2>
+      <ol>
+        <li>Open <code>Tools > Serial Monitor</code>.</li>
+        <li>Set baud rate to <code>115200</code>.</li>
+        <li>Press <code>RST</code> on the ESP32-CAM.</li>
+        <li>Look for a line like this:</li>
+      </ol>
+      <pre>germcam-1 ready: http://192.168.1.42/</pre>
+
+      <div class="screenshot">
+        <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><strong>Serial Monitor screenshot</strong></div>
+        <pre>Connecting to MyWifi....
+germcam-1 ready: http://192.168.1.42/
+Connecting to MQTT 192.168.1.10:1883</pre>
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 7 - Test The Camera In Browser</h2>
+      <p>Replace <code>192.168.1.42</code> with the IP printed in Serial Monitor.</p>
+      <table>
+        <tr><th>URL</th><th>Expected result</th></tr>
+        <tr><td><code>http://192.168.1.42/</code></td><td>Simple preview page.</td></tr>
+        <tr><td><code>http://192.168.1.42/jpg</code></td><td>Single JPEG image.</td></tr>
+        <tr><td><code>http://192.168.1.42/stream</code></td><td>Live MJPEG stream.</td></tr>
+        <tr><td><code>http://192.168.1.42/status</code></td><td>JSON status.</td></tr>
+      </table>
+
+      <div class="screenshot">
+        <div class="screenbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><strong>Browser preview screenshot</strong></div>
+        <div class="fake-ui">
+          <p>Address bar: <code>http://192.168.1.42/</code></p>
+          <div class="box">
+            <h3>germcam-1</h3>
+            <ul>
+              <li>/jpg single capture</li>
+              <li>/stream live MJPEG stream</li>
+              <li>/status node status</li>
+            </ul>
+            <div style="height:140px;background:#d9f99d;border:1px solid #84cc16;display:flex;align-items:center;justify-content:center;">Camera image appears here</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 8 - Test MQTT On The Raspberry Pi</h2>
+      <p>On the Raspberry Pi, install and start Mosquitto if it is not already running:</p>
+      <pre>sudo apt update
+sudo apt install mosquitto mosquitto-clients
+sudo systemctl enable --now mosquitto</pre>
+
+      <p>Subscribe to all germination chamber topics:</p>
+      <pre>mosquitto_sub -h localhost -t 'germination/#' -v</pre>
+
+      <p>Expected output:</p>
+      <pre>germination/germcam-1/availability online
+germination/germcam-1/status {"node":"germcam-1","ip":"192.168.1.42","rssi":-55,"uptime_ms":30122,"free_heap":123456,"jpg_url":"http://192.168.1.42/jpg","stream_url":"http://192.168.1.42/stream"}
+germination/germcam-1/jpg_url http://192.168.1.42/jpg
+germination/germcam-1/stream_url http://192.168.1.42/stream</pre>
+
+      <div class="box warn">
+        <strong>If MQTT does not connect</strong>
+        Make sure <code>MQTT_HOST</code> in the sketch is the Pi IP address, not the ESP32 IP address. Make sure the Pi and ESP32-CAM are on the same Wi-Fi network.
+      </div>
+    </section>
+
+    <section>
+      <h2>Step 9 - Flash The Second ESP32-CAM</h2>
+      <ol>
+        <li>In the same sketch, change <code>NODE_NAME</code> to <code>germcam-2</code>.</li>
+        <li>Wire the second board exactly the same way.</li>
+        <li>Connect <code>GPIO0</code> to <code>GND</code>.</li>
+        <li>Press <code>RST</code>.</li>
+        <li>Upload.</li>
+        <li>Remove the <code>GPIO0</code> jumper.</li>
+        <li>Press <code>RST</code>.</li>
+        <li>Check browser and MQTT topics for <code>germcam-2</code>.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Step 10 - First Chamber Mounting</h2>
+      <ul>
+        <li>Mount the cameras before collecting training photos. Moving the camera later changes the dataset.</li>
+        <li>Keep the camera electronics away from condensation and direct mist.</li>
+        <li>Use stable lighting. The LED strip should be consistent between captures.</li>
+        <li>Do not use the ESP32-CAM flash LED as the grow light.</li>
+        <li>Keep cables strain-relieved so the camera does not move when the chamber is opened.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Troubleshooting</h2>
+      <table>
+        <tr><th>Problem</th><th>Likely cause</th><th>Fix</th></tr>
+        <tr>
+          <td>Upload says failed to connect</td>
+          <td>Board not in flash mode</td>
+          <td>Connect <code>GPIO0</code> to <code>GND</code>, press <code>RST</code>, upload again.</td>
+        </tr>
+        <tr>
+          <td>Serial Monitor shows unreadable text</td>
+          <td>Wrong baud rate</td>
+          <td>Set Serial Monitor to <code>115200</code>.</td>
+        </tr>
+        <tr>
+          <td>Camera init failed</td>
+          <td>Wrong board type, weak power, or non-AI-Thinker pinout</td>
+          <td>Use <code>AI Thinker ESP32-CAM</code>, power from <code>5V</code>, check module model.</td>
+        </tr>
+        <tr>
+          <td>Browser page does not load</td>
+          <td>Wrong IP or Wi-Fi issue</td>
+          <td>Check Serial Monitor for the latest IP. Make sure laptop and ESP32 are on the same network.</td>
+        </tr>
+        <tr>
+          <td>MQTT topics do not appear</td>
+          <td>Wrong Pi IP or Mosquitto not running</td>
+          <td>Run <code>hostname -I</code> on Pi, update <code>MQTT_HOST</code>, restart Mosquitto.</td>
+        </tr>
+        <tr>
+          <td>ESP32 keeps rebooting</td>
+          <td>Power brownout</td>
+          <td>Use a better 5V supply and shorter wires.</td>
+        </tr>
+      </table>
+    </section>
+
+    <section class="ok">
+      <h2>Definition Of Done For ESP32 Setup</h2>
+      <ul>
+        <li><code>germcam-1</code> opens in browser and shows an image.</li>
+        <li><code>germcam-2</code> opens in browser and shows an image.</li>
+        <li>The Pi receives <code>germination/germcam-1/#</code> MQTT topics.</li>
+        <li>The Pi receives <code>germination/germcam-2/#</code> MQTT topics.</li>
+        <li>Both cameras are physically fixed in repeatable positions.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

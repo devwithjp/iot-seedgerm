@@ -1,0 +1,11 @@
+timestamp,label,active_gpio,soil_raw,moisture_percent,scan_gpio32,scan_gpio33,scan_gpio34,scan_gpio35,scan_gpio36,scan_gpio39
+2026-07-08T11:37:23+1000,pre_calibration_gpio32_test,32,14,100,10,0,0,0,0,0
+2026-07-08T11:37:25+1000,pre_calibration_gpio32_test,32,2,100,6,0,0,0,0,0
+2026-07-08T11:37:27+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
+2026-07-08T11:37:29+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
+2026-07-08T11:37:31+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
+2026-07-08T11:37:33+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
+2026-07-08T11:37:35+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
+2026-07-08T11:37:37+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
+2026-07-08T11:37:39+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
+2026-07-08T11:37:41+1000,pre_calibration_gpio32_test,32,0,100,0,0,0,0,0,0
