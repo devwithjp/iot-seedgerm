@@ -27,7 +27,9 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
 apt-get install -y \
+  avahi-daemon \
   curl \
+  libnss-mdns \
   mosquitto \
   mosquitto-clients \
   network-manager \
@@ -37,6 +39,7 @@ apt-get install -y \
   rsync
 
 systemctl enable --now NetworkManager
+systemctl enable --now avahi-daemon
 
 WIFI_DEVICE="$(nmcli -t -f DEVICE,TYPE,STATE device | awk -F: '$2=="wifi"{print $1; exit}')"
 if [[ -z "${WIFI_DEVICE}" ]]; then
@@ -138,7 +141,12 @@ MQTT:
 
 Next:
   1. Configure ESP32 SD files to use WIFI_SSID=${AP_SSID} and MQTT_HOST=${AP_ADDRESS%/*}.
-  2. Install Home Assistant separately if this Pi is not already running it.
-  3. Test MQTT with:
+  2. Connect the ESP32-CAM by USB-C for 5V power, flashing, and Serial Monitor logs.
+     Camera images and MQTT still travel over the Pi Wi-Fi AP, not over USB-C.
+  3. Keep Ethernet connected if you want LAN/SSH/internet access while the Pi runs the AP.
+  4. Install Home Assistant separately if this Pi is not already running it.
+  5. Test MQTT with:
      mosquitto_sub -h ${AP_ADDRESS%/*} -u ${MQTT_USER} -P '${MQTT_PASSWORD}' -t 'germination/#' -v
+  6. Test camera capture after the ESP32 joins Wi-Fi:
+     python3 ${PROJECT_DIR}/capture_esp32_cam_images.py --output-dir ${PROJECT_DIR}/images --log ${PROJECT_DIR}/logs/capture_events.jsonl
 EOF

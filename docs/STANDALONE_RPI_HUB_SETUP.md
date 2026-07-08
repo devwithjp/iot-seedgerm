@@ -11,11 +11,17 @@ ESP32 soil node
         | Wi-Fi: REDACTED
         v
 Raspberry Pi
+  - Ethernet: optional LAN/SSH/internet uplink
   - Wi-Fi access point: 192.168.50.1
   - Mosquitto MQTT broker: 192.168.50.1:1883
   - Home Assistant dashboard
   - Scheduled image capture
 ```
+
+If an ESP32-CAM is plugged into the Pi by USB Type-C, use that cable for 5V
+power, flashing, and Serial Monitor logs. With the current firmware, images and
+MQTT do not travel over USB; the ESP32-CAM still joins the Pi Wi-Fi AP and the
+Pi pulls images from `http://germcam-1.local/jpg` or the camera IP address.
 
 The ESP32 devices should publish directly to the Pi:
 
@@ -46,9 +52,11 @@ sudo AP_SSID=REDACTED \
 The script configures:
 
 - Wi-Fi AP named `REDACTED`
+- Ethernet remains usable for SSH, LAN access, or internet access
 - Pi AP address `192.168.50.1`
 - Mosquitto listener on `0.0.0.0:1883`
 - MQTT username/password
+- Avahi/mDNS support for `germcam-1.local` and `germcam-2.local`
 - `germcam-capture.timer` for scheduled image capture
 
 Check services:
@@ -63,6 +71,35 @@ Listen for MQTT:
 
 ```bash
 mosquitto_sub -h 192.168.50.1 -u iota -P 'REDACTED' -t 'germination/#' -v
+```
+
+## ESP32-CAM over USB Type-C
+
+Connect the ESP32-CAM to a Pi USB port using a data-capable USB-C cable. On the
+Pi, check that the serial device appears:
+
+```bash
+ls -l /dev/ttyUSB* /dev/ttyACM* 2>/dev/null
+dmesg | tail -40
+```
+
+For flashing from the Pi, install Arduino CLI or use Arduino IDE from another
+computer. Typical board settings are listed in
+[ESP32_CAM_SETUP.md](ESP32_CAM_SETUP.md). For serial logs from the Pi:
+
+```bash
+sudo apt-get install -y minicom
+minicom -D /dev/ttyUSB0 -b 115200
+```
+
+If the board appears as `/dev/ttyACM0`, use that path instead. After boot,
+Serial Monitor should print:
+
+```text
+Loaded /germcam.cfg from microSD
+Connecting to REDACTED
+germcam-1 ready: http://192.168.50.x/
+mDNS ready: http://germcam-1.local/
 ```
 
 ## ESP32-CAM SD config

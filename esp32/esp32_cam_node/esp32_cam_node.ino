@@ -9,11 +9,15 @@
     /status  JSON status
     /jpg     one JPEG frame
     /stream  MJPEG stream
+
+  Optional combined test:
+    Capacitive soil sensor AOUT -> GPIO32
 */
 
 #include "esp_camera.h"
 #include "FS.h"
 #include "SD_MMC.h"
+#include <ESPmDNS.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
@@ -38,6 +42,10 @@ char MQTT_HOST[64] = "192.168.1.10";  // Mosquitto IP address or hotspot forward
 uint16_t MQTT_PORT = 1883;
 char MQTT_USER[64] = DEFAULT_MQTT_USER;      // Leave empty if Mosquitto allows anonymous LAN clients.
 char MQTT_PASSWORD[64] = DEFAULT_MQTT_PASSWORD;  // Leave empty if Mosquitto allows anonymous LAN clients.
+bool SOIL_ENABLED = false;
+int SOIL_PIN = 32;
+int DRY_RAW = 3200;
+int WET_RAW = 1400;
 bool sdConfigLoaded = false;
 bool cameraReady = false;
 
@@ -47,6 +55,7 @@ PubSubClient mqtt(wifiClient);
 
 unsigned long lastMqttPublish = 0;
 unsigned long lastMqttConnectAttempt = 0;
+unsigned long lastSerialSoilPrint = 0;
 
 // Freenove ESP32-WROVER CAM / WROVER_KIT pin map.
 // Freenove's camera tutorial selects CAMERA_MODEL_WROVER_KIT.
@@ -72,6 +81,38 @@ static const char *STREAM_BOUNDARY = "frame";
 
 void copyConfigValue(char *target, size_t targetSize, const String &value) {
   value.toCharArray(target, targetSize);
+}
+
+bool configBool(const String &value) {
+  return value == "1" || value == "true" || value == "TRUE" || value == "yes" || value == "on";
+}
+
+int analogReadAverage(int pin) {
+  const int samples = 16;
+  uint32_t total = 0;
+  analogRead(pin);
+  delay(5);
+  for (int i = 0; i < samples; i++) {
+    total += analogRead(pin);
+    delay(2);
+  }
+  return total / samples;
+}
+
+int soilRaw() {
+  if (!SOIL_ENABLED) {
+    return -1;
+  }
+  return analogReadAverage(SOIL_PIN);
+}
+
+int soilPercentFromRaw(int raw) {
+  if (!SOIL_ENABLED || raw < 0 || DRY_RAW == WET_RAW) {
+    return -1;
+  }
+
+  int percent = map(raw, DRY_RAW, WET_RAW, 0, 100);
+  return constrain(percent, 0, 100);
 }
 
 void applyConfigLine(String line) {
@@ -116,6 +157,14 @@ void applyConfigLine(String line) {
     copyConfigValue(MQTT_USER, sizeof(MQTT_USER), value);
   } else if (key == "MQTT_PASSWORD") {
     copyConfigValue(MQTT_PASSWORD, sizeof(MQTT_PASSWORD), value);
+  } else if (key == "SOIL_ENABLED") {
+    SOIL_ENABLED = configBool(value);
+  } else if (key == "SOIL_PIN") {
+    SOIL_PIN = value.toInt();
+  } else if (key == "DRY_RAW") {
+    DRY_RAW = value.toInt();
+  } else if (key == "WET_RAW") {
+    WET_RAW = value.toInt();
   } else {
     Serial.printf("Unknown config key: %s\n", key.c_str());
   }
@@ -168,6 +217,11 @@ void handleRoot() {
   body += "<li><a href=\"/jpg\">/jpg</a> single capture</li>";
   body += "<li><a href=\"/stream\">/stream</a> live MJPEG stream</li>";
   body += "<li><a href=\"/status\">/status</a> node status</li>";
+  if (SOIL_ENABLED) {
+    body += "<li>soil sensor enabled on GPIO";
+    body += SOIL_PIN;
+    body += "</li>";
+  }
   body += "</ul>";
   body += "<img src=\"/stream\" style=\"max-width:100%;height:auto;\">";
   body += "</body></html>";
@@ -189,6 +243,9 @@ String topic(const char *suffix) {
 }
 
 String statusJson() {
+  int raw = soilRaw();
+  int moisture = soilPercentFromRaw(raw);
+
   String json;
   json += "{";
   json += "\"node\":\"";
@@ -210,6 +267,20 @@ String statusJson() {
   json += "/jpg\",\"stream_url\":\"http://";
   json += WiFi.localIP().toString();
   json += "/stream\"";
+  json += ",\"soil_enabled\":";
+  json += SOIL_ENABLED ? "true" : "false";
+  if (SOIL_ENABLED) {
+    json += ",\"soil_pin\":";
+    json += SOIL_PIN;
+    json += ",\"soil_raw\":";
+    json += raw;
+    json += ",\"soil_moisture_percent\":";
+    json += moisture;
+    json += ",\"dry_raw\":";
+    json += DRY_RAW;
+    json += ",\"wet_raw\":";
+    json += WET_RAW;
+  }
   json += "}";
   return json;
 }
@@ -326,6 +397,13 @@ void connectWifi() {
 
   Serial.println();
   Serial.printf("%s ready: http://%s/\n", NODE_NAME, WiFi.localIP().toString().c_str());
+
+  if (MDNS.begin(NODE_NAME)) {
+    MDNS.addService("http", "tcp", 80);
+    Serial.printf("mDNS ready: http://%s.local/\n", NODE_NAME);
+  } else {
+    Serial.println("mDNS setup failed; use the printed IP address instead");
+  }
 }
 
 void publishMqttStatus() {
@@ -339,6 +417,13 @@ void publishMqttStatus() {
   mqtt.publish(topic("status").c_str(), payload.c_str(), true);
   mqtt.publish(topic("jpg_url").c_str(), jpgUrl.c_str(), true);
   mqtt.publish(topic("stream_url").c_str(), streamUrl.c_str(), true);
+
+  if (SOIL_ENABLED) {
+    int raw = soilRaw();
+    int moisture = soilPercentFromRaw(raw);
+    mqtt.publish(topic("soil_raw").c_str(), String(raw).c_str(), true);
+    mqtt.publish(topic("soil_moisture_percent").c_str(), String(moisture).c_str(), true);
+  }
 }
 
 void connectMqtt() {
@@ -379,11 +464,17 @@ void setup() {
 
   loadConfigFromSd();
   applySecretFallbacks();
+  if (SOIL_ENABLED) {
+    analogReadResolution(12);
+    analogSetPinAttenuation(SOIL_PIN, ADC_11db);
+    Serial.printf("Soil sensor enabled on GPIO%d\n", SOIL_PIN);
+  }
   cameraReady = configureCamera();
   if (!cameraReady) {
     Serial.println("Camera not ready; HTTP status page will still start");
   }
   connectWifi();
+  mqtt.setBufferSize(768);
   connectMqtt();
 
   server.on("/", HTTP_GET, handleRoot);
@@ -406,5 +497,12 @@ void loop() {
   if (millis() - lastMqttPublish > 30000) {
     publishMqttStatus();
     lastMqttPublish = millis();
+  }
+
+  if (SOIL_ENABLED && millis() - lastSerialSoilPrint > 5000) {
+    int raw = soilRaw();
+    int moisture = soilPercentFromRaw(raw);
+    Serial.printf("soil GPIO%d raw=%d moisture=%d%%\n", SOIL_PIN, raw, moisture);
+    lastSerialSoilPrint = millis();
   }
 }

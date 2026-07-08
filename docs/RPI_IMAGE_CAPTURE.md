@@ -25,6 +25,10 @@ http://germcam-1.local/jpg
 http://germcam-2.local/jpg
 ```
 
+The ESP32-CAM firmware advertises these names with mDNS, and the standalone Pi
+setup installs Avahi/mDNS support. If mDNS is not available on your network,
+use the IP address printed in the ESP32 Serial Monitor.
+
 Images are written under:
 
 ```text

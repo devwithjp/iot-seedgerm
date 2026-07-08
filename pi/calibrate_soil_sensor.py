@@ -35,13 +35,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--expected-pin",
         type=int,
-        default=34,
+        default=32,
         help="Expected active GPIO. Warnings are printed if firmware reports another pin.",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("project/data/calibration/soil_calibration.csv"),
+        default=Path("data/calibration/soil_calibration.csv"),
         help="CSV file to append readings to.",
     )
     return parser.parse_args()

@@ -15,7 +15,7 @@ Do not send every camera image through MQTT at first. It can work for small snap
 ## Hardware needed for flashing
 
 - Freenove ESP32-WROVER CAM module. The current firmware uses the WROVER_KIT/Freenove pin map.
-- FTDI/USB-to-serial adapter set to `5V`.
+- FTDI/USB-to-serial adapter set to `5V`, or the board's built-in USB-C serial connection if your ESP32-CAM variant has one.
 - Jumper wires.
 - Stable 5V supply. Weak USB power causes camera brownouts.
 
@@ -30,6 +30,11 @@ Do not send every camera image through MQTT at first. It can work for small snap
 | GND | GPIO0 |
 
 `GPIO0` must be connected to `GND` only while flashing. Remove that link and press reset to boot normally after upload.
+
+If your ESP32-CAM has built-in USB-C, plug it directly into the Raspberry Pi or
+computer with a data-capable USB-C cable. It should appear as `/dev/ttyUSB0` or
+`/dev/ttyACM0`. USB-C is used for flashing, power, and serial logs; the current
+firmware still sends camera images over Wi-Fi/HTTP and status over MQTT.
 
 ## Arduino IDE setup
 
@@ -74,7 +79,8 @@ You can also put these settings on the ESP32-CAM microSD card as `germcam.cfg`, 
 6. Press `RST`.
 7. Open Serial Monitor at `115200`.
 8. Note the printed URL, for example `http://192.168.1.42/`.
-9. Test these endpoints in a browser:
+9. If mDNS is working, also test `http://germcam-1.local/`.
+10. Test these endpoints in a browser:
    - `/` live preview page
    - `/jpg` single image
    - `/stream` MJPEG stream

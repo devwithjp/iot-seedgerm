@@ -106,6 +106,29 @@ mqtt:
       device:
         identifiers: ["germcam-1"]
 
+    - name: "Germcam 1 Soil Raw Moisture"
+      unique_id: germcam_1_soil_raw_moisture
+      state_topic: "germination/germcam-1/soil_raw"
+      unit_of_measurement: "ADC"
+      state_class: measurement
+      availability_topic: "germination/germcam-1/availability"
+      payload_available: "online"
+      payload_not_available: "offline"
+      device:
+        identifiers: ["germcam-1"]
+
+    - name: "Germcam 1 Soil Moisture"
+      unique_id: germcam_1_soil_moisture_percent
+      state_topic: "germination/germcam-1/soil_moisture_percent"
+      unit_of_measurement: "%"
+      icon: "mdi:water-percent"
+      state_class: measurement
+      availability_topic: "germination/germcam-1/availability"
+      payload_available: "online"
+      payload_not_available: "offline"
+      device:
+        identifiers: ["germcam-1"]
+
     - name: "Germcam 2 RSSI"
       unique_id: germcam_2_rssi
       state_topic: "germination/germcam-2/status"

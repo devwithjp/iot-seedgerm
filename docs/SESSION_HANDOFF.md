@@ -2,6 +2,120 @@
 
 ## Current status
 
+Update on 2026-07-08: the ESP32-CAM combined camera + soil test is now running on
+one board with the capacitive soil sensor on GPIO32.
+
+The combined firmware was flashed successfully to:
+
+```text
+esp32/esp32_cam_node/esp32_cam_node.ino
+```
+
+The ESP32-CAM now boots with the inserted microSD card and loads:
+
+```text
+/germcam.cfg
+```
+
+Current combined config fields on the card:
+
+```text
+SOIL_ENABLED=1
+SOIL_PIN=32
+DRY_RAW=3200
+WET_RAW=1400
+```
+
+Confirmed serial boot after flashing:
+
+```text
+Loaded /germcam.cfg from microSD
+Soil sensor enabled on GPIO32
+Connecting to Khushali’s iPhone.
+germcam-1 ready: http://172.20.10.5/
+mDNS ready: http://germcam-1.local/
+Connecting to MQTT 172.20.10.7:1883
+```
+
+Confirmed direct HTTP `/status` from a client on the same hotspot:
+
+```json
+{"node":"germcam-1","ip":"172.20.10.5","rssi":-48,"uptime_ms":2527910,"free_heap":179972,"camera_ready":true,"config_source":"sd","jpg_url":"http://172.20.10.5/jpg","stream_url":"http://172.20.10.5/stream","soil_enabled":true,"soil_pin":32,"soil_raw":4095,"soil_moisture_percent":0,"dry_raw":3200,"wet_raw":1400}
+```
+
+Confirmed MQTT topics from the combined node when the laptop was on the same
+hotspot:
+
+```text
+germination/germcam-1/availability online
+germination/germcam-1/status
+germination/germcam-1/jpg_url
+germination/germcam-1/stream_url
+germination/germcam-1/soil_raw
+germination/germcam-1/soil_moisture_percent
+```
+
+Confirmed camera still works with the combined firmware:
+
+```text
+GET http://172.20.10.5/jpg -> valid JPEG
+```
+
+The current remaining hardware issue is not coexistence, but analog saturation.
+The latest stable readings reached full scale:
+
+```text
+soil GPIO32 raw=4095 moisture=0%
+```
+
+This means camera + GPIO32 soil can coexist on one ESP32-CAM board, but the soil
+signal still needs calibration and possibly wiring cleanup if it remains pegged at
+4095.
+
+Home Assistant package updates were made so the combined node can expose these new
+entities under `Germcam 1`:
+
+```text
+Germcam 1 Soil Raw Moisture
+Germcam 1 Soil Moisture
+```
+
+Package file:
+
+```text
+homeassistant/packages/germcam_mqtt.yaml
+```
+
+An on-demand Pi-side helper was added:
+
+```text
+pi/poll_esp32_status_to_mqtt.py
+```
+
+It fetches:
+
+```text
+http://172.20.10.5/status
+```
+
+and republishes:
+
+```text
+germination/germcam-1/status
+germination/germcam-1/soil_raw
+germination/germcam-1/soil_moisture_percent
+```
+
+Current blocker on that helper path:
+
+```text
+mosquitto_pub -> Connection Refused: not authorised
+MQTT connect failed, rc=5
+```
+
+So if the helper is used, the Pi broker credentials or Mosquitto permissions need
+to be rechecked first.
+
 Update on 2026-07-08: a local config file has been added at `project/config/germsensor.cfg` with `SOIL_PIN=32`. The ESP32 microSD card was not mounted on this Linux machine, so copy that file to the card as `/germsensor.cfg` before rebooting the node.
 
 Latest GPIO32 test after moving the sensor back:
@@ -18,6 +132,24 @@ pre_calibration_gpio32_test: count=10 min=0 max=14 mean=1.6 median=0.0 stdev=4.4
 ```
 
 This confirms GPIO32 can see the sensor output, but the reading is not stable enough to calibrate yet.
+
+Latest soil sensor continuation:
+
+```text
+soil GPIO33 raw=0 moisture=100%
+adc scan: GPIO32=0 GPIO33=0 GPIO34=0 GPIO35=0 GPIO36=0 GPIO39=0
+```
+
+The firmware auto-selected GPIO33 during the latest read because the configured signal was dead, but the settled scan still showed all checked ADC pins at 0. Calibration CSV summary:
+
+```text
+soil_calibration.csv dry_stability: count=69 min=0 max=415 mean=19.1 median=0.0 nonzero=6
+soil_calibration.csv wet_test:      count=30 min=0 max=0   mean=0.0  median=0.0 nonzero=0
+```
+
+Do not set final `DRY_RAW` / `WET_RAW` yet. The sensor output or jumper contact is still not stable enough for calibration.
+
+Standalone Pi progress has been prepared locally, but not copied to the Pi because `homeassistant.local` / `raspberrypi.local` did not resolve from the laptop and Ethernet showed `NO-CARRIER`.
 
 Calibration tooling has been added:
 

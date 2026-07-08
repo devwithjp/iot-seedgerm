@@ -4,7 +4,7 @@
   Wiring for a separate ESP32 board:
     Soil sensor GND  -> ESP32 GND
     Soil sensor VCC  -> ESP32 3V3
-    Soil sensor AOUT -> ESP32 GPIO34
+    Soil sensor AOUT -> ESP32 GPIO32
 
   Endpoints:
     /        simple help page
@@ -39,7 +39,7 @@ uint16_t MQTT_PORT = 1883;
 char MQTT_USER[64] = DEFAULT_MQTT_USER;
 char MQTT_PASSWORD[64] = DEFAULT_MQTT_PASSWORD;
 
-int SOIL_PIN = 34;
+int SOIL_PIN = 32;
 int DRY_RAW = 3200;
 int WET_RAW = 1400;
 int SD_CS_PIN = 5;
